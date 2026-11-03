@@ -276,5 +276,48 @@ rectTests(440, 176, 'landscape');
 rectTests(320, 568, 'small portrait');
 rectTests(440, 300, 'tablet');
 
+console.log('\n== font rasterizer orientation ==');
+// Render every glyph through the shipping text() and compare to an
+// independent MSB-first decode of the table (bit 4 = LEFT pixel).
+// Guards against the mirror bug where bit 0 was taken as the left column.
+function rasterize(ch) {
+  const px = new Set();
+  const ctx = { font: '', textBaseline: '', fillStyle: '',
+    fillRect: (x, y, w, h) => {
+      for (let dx = 0; dx < w; dx++) for (let dy = 0; dy < h; dy++)
+        px.add((x + dx) + ',' + (y + dy));
+    } };
+  C.text(ctx, ch, 0, 0, 1, '#fff', 'left');
+  return px;
+}
+function expectBits(ch) {
+  const g = C.GLYPHS[ch] || C.GLYPHS['?'];
+  const px = new Set();
+  for (let r = 0; r < 7; r++) for (let c = 0; c < 5; c++)
+    if ((g[r] >> (4 - c)) & 1) px.add(c + ',' + r);
+  return px;
+}
+const same = (a, b) => a.size === b.size && [...a].every(k => b.has(k));
+let mirrorBad = [], asymChecked = 0;
+for (const ch of Object.keys(C.GLYPHS)) {
+  if (!same(rasterize(ch), expectBits(ch))) mirrorBad.push(ch);
+}
+ok('every glyph rasterizes in the correct (non-mirrored) orientation',
+  mirrorBad.length === 0, mirrorBad.join(''));
+// asymmetric glyphs must NOT equal their horizontal flip
+for (const ch of ['2', '5', '6', '7', '9', 'A', 'B', 'E', 'F', 'G', 'J', 'K',
+                  'L', 'P', 'R', 'S', 'Z', '/', '<', '>', '?', '!']) {
+  const g = C.GLYPHS[ch]; if (!g) continue;
+  const flipped = new Set();
+  for (const [k] of expectBits(ch)) { const [c, r] = k.split(','); flipped.add((4 - +c) + ',' + r); }
+  if (!same(rasterize(ch), flipped)) asymChecked++;
+}
+ok('asymmetric glyphs differ from their mirror image', asymChecked >= 20, asymChecked);
+// the specific bug signature: 'L' (0x10 rows) must light the LEFT column
+const Lpx = rasterize('L');
+ok("'L' stem is on the left", Lpx.has('0,0') && !Lpx.has('4,0'));
+ok("'7' top-right stroke descends leftward", rasterize('7').has('4,1') && !rasterize('7').has('0,1'));
+ok("'2' second row is on the right", rasterize('2').has('4,1') && !rasterize('2').has('0,1'));
+
 console.log('\n' + (fails ? 'FAILED ' + fails + '/' + runs : 'ALL PASS ' + runs + '/' + runs));
 process.exit(fails ? 1 : 0);

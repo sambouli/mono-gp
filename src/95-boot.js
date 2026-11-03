@@ -8,6 +8,7 @@
     toQuali: toQuali, toGrid: toGrid, autopilot: autopilot,
     fmtTime: fmtTime, findSegment: findSegment, rankField: rankField,
     qualiBoard: qualiBoard, computeLayout: computeLayout, hudLayout: hudLayout,
+    text: text, textW: textW, GLYPHS: GLYPHS,
     consts: { SEG_LEN: SEG_LEN, MAX_SPEED: MAX_SPEED, RACE_LAPS: RACE_LAPS,
       QUALI_TIME: QUALI_TIME, LAP_TARGET: LAP_TARGET, DRAW_DIST: DRAW_DIST }
   };

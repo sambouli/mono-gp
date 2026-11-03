@@ -76,9 +76,10 @@ function text(ctx, str, x, y, sc, col, align) {
     for (var r = 0; r < 7; r++) {
       var bits = g[r];
       if (!bits) continue;
-      var col0 = bits & 1, run = 1;
+      // glyph rows are MSB-first: bit 4 is the LEFT pixel of the 5-wide cell
+      var col0 = (bits >> 4) & 1, run = 1;
       for (var b = 1; b <= 5; b++) {
-        var bit = (b < 5) ? ((bits >> b) & 1) : 0;
+        var bit = (b < 5) ? ((bits >> (4 - b)) & 1) : 0;
         if (bit === col0) { run++; continue; }
         if (col0) ctx.fillRect(ox + (b - run) * sc, y + r * sc, run * sc, sc);
         col0 = bit; run = 1;
